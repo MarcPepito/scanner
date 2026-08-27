@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Scanner iPhone – QuaggaJS amélioré</title>
+<title>Scanner iPhone – QuaggaJS</title>
 
 <style>
   body {
@@ -51,7 +51,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 
 <script>
-  const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxGhOoSIky3MCVhP_97iJOAvn4DFJSgTGuBkEZt3sdCVAVOZbTlZvZlJFLs28th0QbO/exec";
+  // 👉 Mets ici TON URL WebApp Google Apps Script
+  const WEBAPP_URL ="https://script.google.com/macros/s/AKfycbxGhOoSIky3MCVhP_97iJOAvn4DFJSgTGuBkEZt3sdCVAVOZbTlZvZlJFLs28th0QbO/exec";
 
   function startScanner() {
     Quagga.init({
@@ -120,9 +121,24 @@
 </head>
 <body>
 
-<h2>Scanner iPhone – QuaggaJS amélioré</h2>
+<h2>Scanner iPhone – QuaggaJS</h2>
 
 <button onclick="startScanner()">📷 Ouvrir la caméra</button>
 
 <div id="interactive">
-  <div id="frame">
+  <div id="frame"></div>
+</div>
+
+<button onclick="nouveauScan()">🔄 Nouveau scan</button>
+
+<input type="text" id="codebarres" placeholder="Code-barres détecté">
+
+<input type="text" id="titre" placeholder="Titre">
+<input type="text" id="artistes" placeholder="Artistes">
+<input type="text" id="pays" placeholder="Pays">
+<input type="text" id="labels" placeholder="Labels">
+
+<button onclick="envoyer()">Envoyer</button>
+
+</body>
+</html>
