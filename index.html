@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Scanner iPhone – ZXing</title>
+<title>Scanner iPhone – ZXing Pro</title>
 
 <style>
   body {
@@ -12,19 +12,33 @@
     padding: 20px;
     text-align: center;
   }
-  video {
+
+  #video {
     width: 100%;
     max-width: 400px;
-    border: 2px solid #333;
+    border: 3px solid #4CAF50;
     border-radius: 10px;
     margin-top: 20px;
   }
+
+  #frame {
+    position: absolute;
+    border: 3px solid red;
+    width: 200px;
+    height: 120px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
   input, button {
     width: 100%;
     padding: 12px;
     margin-top: 10px;
     font-size: 16px;
   }
+
   button {
     background-color: #4CAF50;
     color: white;
@@ -32,38 +46,32 @@
   }
 </style>
 
-<!-- ZXing -->
-<script type="module">
-  import { BrowserMultiFormatReader } from "https://cdn.jsdelivr.net/npm/@zxing/library@latest/+esm";
+<!-- ZXing non-module -->
+<script src="https://unpkg.com/@zxing/library@latest"></script>
 
+<script>
   const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxGhOoSIky3MCVhP_97iJOAvn4DFJSgTGuBkEZt3sdCVAVOZbTlZvZlJFLs28th0QbO/exec";
 
+  let selectedDeviceId;
   let codeReader;
-  let videoElement;
 
   async function startScanner() {
-    codeReader = new BrowserMultiFormatReader();
+    codeReader = new ZXing.BrowserMultiFormatReader();
 
-    videoElement = document.getElementById("video");
+    const video = document.getElementById("video");
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: "environment",
-          zoom: true
-        }
-      });
+      const devices = await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
+      selectedDeviceId = devices[devices.length - 1].deviceId;
 
-      videoElement.srcObject = stream;
-      videoElement.setAttribute("playsinline", true);
-      videoElement.play();
+      enableZoom(video);
+      enableTapToFocus(video);
 
-      enableZoom(videoElement);
-
-      codeReader.decodeFromVideoDevice(null, videoElement, (result, err) => {
+      codeReader.decodeFromVideoDevice(selectedDeviceId, video, (result, err) => {
         if (result) {
           const code = result.getText();
           document.getElementById("codebarres").value = code;
+          beep();
           alert("Code détecté : " + code);
           codeReader.reset();
         }
@@ -78,17 +86,29 @@
     video.addEventListener("wheel", (event) => {
       const track = video.srcObject.getVideoTracks()[0];
       const capabilities = track.getCapabilities();
-
       if (!capabilities.zoom) return;
 
-      const settings = track.getSettings();
-      let zoom = settings.zoom || capabilities.zoom.min;
-
+      let zoom = track.getSettings().zoom || capabilities.zoom.min;
       zoom += event.deltaY * -0.01;
       zoom = Math.max(capabilities.zoom.min, Math.min(capabilities.zoom.max, zoom));
 
       track.applyConstraints({ advanced: [{ zoom }] });
     });
+  }
+
+  function enableTapToFocus(video) {
+    video.addEventListener("click", () => {
+      const track = video.srcObject.getVideoTracks()[0];
+      const capabilities = track.getCapabilities();
+      if (capabilities.focusMode && capabilities.focusMode.includes("single-shot")) {
+        track.applyConstraints({ advanced: [{ focusMode: "single-shot" }] });
+      }
+    });
+  }
+
+  function beep() {
+    const audio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+    audio.play();
   }
 
   async function envoyer() {
@@ -112,16 +132,26 @@
       alert("Erreur : " + err);
     }
   }
+
+  function nouveauScan() {
+    document.getElementById("codebarres").value = "";
+    startScanner();
+  }
 </script>
 
 </head>
 <body>
 
-<h2>Scanner iPhone – ZXing (EAN‑13 + UPC)</h2>
+<h2>Scanner iPhone – ZXing Pro</h2>
 
 <button onclick="startScanner()">📷 Ouvrir la caméra</button>
 
-<video id="video"></video>
+<div style="position:relative;">
+  <video id="video" playsinline></video>
+  <div id="frame"></div>
+</div>
+
+<button onclick="nouveauScan()">🔄 Nouveau scan</button>
 
 <input type="text" id="codebarres" placeholder="Code-barres détecté">
 
