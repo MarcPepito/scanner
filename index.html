@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Scanner iPhone</title>
+
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    text-align: center;
+  }
+  video {
+    width: 100%;
+    max-width: 400px;
+    margin-top: 20px;
+    border: 2px solid #333;
+    border-radius: 10px;
+  }
+  input, button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    font-size: 16px;
+  }
+  button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+  }
+</style>
+
+<script>
+  // 👉 Mets ici TON URL WebApp Google Apps Script
+  const WEBAPP_URL ="https://script.google.com/macros/s/AKfycbxGhOoSIky3MCVhP_97iJOAvn4DFJSgTGuBkEZt3sdCVAVOZbTlZvZlJFLs28th0QbO/exec";
+
+  let videoStream;
+
+  async function startCamera() {
+    try {
+      videoStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" }
+      });
+
+      const video = document.getElementById("video");
+      video.srcObject = videoStream;
+      video.play();
+
+      scanLoop();
+    } catch (err) {
+      alert("Impossible d'accéder à la caméra : " + err);
+    }
+  }
+
+  async function scanLoop() {
+    const video = document.getElementById("video");
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    try {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const barcodeDetector = new BarcodeDetector({ formats: ["ean_13", "ean_8", "code_128"] });
+
+      const barcodes = await barcodeDetector.detect(canvas);
+
+      if (barcodes.length > 0) {
+        const code = barcodes[0].rawValue;
+        document.getElementById("codebarres").value = code;
+        videoStream.getTracks().forEach(t => t.stop());
+        alert("Code détecté : " + code);
+      }
+    } catch (e) {
+      // Safari ne supporte pas BarcodeDetector → fallback possible
+    }
+
+    requestAnimationFrame(scanLoop);
+  }
+
+  async function envoyer() {
+    const payload = {
+      codebarres: document.getElementById("codebarres").value,
+      titre: document.getElementById("titre").value,
+      artistes: document.getElementById("artistes").value,
+      pays: document.getElementById("pays").value,
+      labels: document.getElementById("labels").value
+    };
+
+    try {
+      await fetch(WEBAPP_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      alert("Enregistrement réussi !");
+    } catch (err) {
+      alert("Erreur : " + err);
+    }
+  }
+</script>
+
+</head>
+<body>
+
+<h2>Scanner iPhone</h2>
+
+<button onclick="startCamera()">📷 Ouvrir la caméra</button>
+<video id="video"></video>
+
+<input type="text" id="codebarres" placeholder="Code-barres détecté">
+
+<input type="text" id="titre" placeholder="Titre">
+<input type="text" id="artistes" placeholder="Artistes">
+<input type="text" id="pays" placeholder="Pays">
+<input type="text" id="labels" placeholder="Labels">
+
+<button onclick="envoyer()">Envoyer</button>
+
+</body>
+</html>
