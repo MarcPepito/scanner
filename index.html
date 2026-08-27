@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Scanner iPhone – ZXing Pro</title>
+<title>Scanner iPhone – QuaggaJS amélioré</title>
 
 <style>
   body {
@@ -13,19 +13,20 @@
     text-align: center;
   }
 
-  #video {
+  #interactive {
+    position: relative;
     width: 100%;
     max-width: 400px;
-    border: 3px solid #4CAF50;
+    margin: 20px auto;
+    border: 2px solid #333;
     border-radius: 10px;
-    margin-top: 20px;
   }
 
   #frame {
     position: absolute;
-    border: 3px solid red;
-    width: 200px;
-    height: 120px;
+    border: 3px solid #00ff00;
+    width: 70%;
+    height: 30%;
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
@@ -46,69 +47,51 @@
   }
 </style>
 
-<!-- ZXing non-module -->
-<script src="https://unpkg.com/@zxing/library@latest"></script>
+<!-- QuaggaJS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 
 <script>
   const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxGhOoSIky3MCVhP_97iJOAvn4DFJSgTGuBkEZt3sdCVAVOZbTlZvZlJFLs28th0QbO/exec";
 
-  let selectedDeviceId;
-  let codeReader;
-
-  async function startScanner() {
-    codeReader = new ZXing.BrowserMultiFormatReader();
-
-    const video = document.getElementById("video");
-
-    try {
-      const devices = await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
-      selectedDeviceId = devices[devices.length - 1].deviceId;
-
-      enableZoom(video);
-      enableTapToFocus(video);
-
-      codeReader.decodeFromVideoDevice(selectedDeviceId, video, (result, err) => {
-        if (result) {
-          const code = result.getText();
-          document.getElementById("codebarres").value = code;
-          beep();
-          alert("Code détecté : " + code);
-          codeReader.reset();
+  function startScanner() {
+    Quagga.init({
+      inputStream: {
+        name: "Live",
+        type: "LiveStream",
+        target: document.querySelector('#interactive'),
+        constraints: {
+          facingMode: "environment"
         }
-      });
-
-    } catch (err) {
-      alert("Erreur caméra : " + err);
-    }
-  }
-
-  function enableZoom(video) {
-    video.addEventListener("wheel", (event) => {
-      const track = video.srcObject.getVideoTracks()[0];
-      const capabilities = track.getCapabilities();
-      if (!capabilities.zoom) return;
-
-      let zoom = track.getSettings().zoom || capabilities.zoom.min;
-      zoom += event.deltaY * -0.01;
-      zoom = Math.max(capabilities.zoom.min, Math.min(capabilities.zoom.max, zoom));
-
-      track.applyConstraints({ advanced: [{ zoom }] });
-    });
-  }
-
-  function enableTapToFocus(video) {
-    video.addEventListener("click", () => {
-      const track = video.srcObject.getVideoTracks()[0];
-      const capabilities = track.getCapabilities();
-      if (capabilities.focusMode && capabilities.focusMode.includes("single-shot")) {
-        track.applyConstraints({ advanced: [{ focusMode: "single-shot" }] });
+      },
+      decoder: {
+        readers: ["ean_reader", "ean_8_reader", "upc_reader", "code_128_reader"]
       }
+    }, function(err) {
+      if (err) {
+        alert("Erreur Quagga : " + err);
+        return;
+      }
+      Quagga.start();
+    });
+
+    Quagga.onDetected(function(result) {
+      const code = result.codeResult.code;
+      document.getElementById("codebarres").value = code;
+      beep();
+      alert("Code détecté : " + code);
+      Quagga.stop();
     });
   }
 
   function beep() {
     const audio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
     audio.play();
+  }
+
+  function nouveauScan() {
+    document.getElementById("codebarres").value = "";
+    Quagga.stop();
+    startScanner();
   }
 
   async function envoyer() {
@@ -132,35 +115,14 @@
       alert("Erreur : " + err);
     }
   }
-
-  function nouveauScan() {
-    document.getElementById("codebarres").value = "";
-    startScanner();
-  }
 </script>
 
 </head>
 <body>
 
-<h2>Scanner iPhone – ZXing Pro</h2>
+<h2>Scanner iPhone – QuaggaJS amélioré</h2>
 
 <button onclick="startScanner()">📷 Ouvrir la caméra</button>
 
-<div style="position:relative;">
-  <video id="video" playsinline></video>
-  <div id="frame"></div>
-</div>
-
-<button onclick="nouveauScan()">🔄 Nouveau scan</button>
-
-<input type="text" id="codebarres" placeholder="Code-barres détecté">
-
-<input type="text" id="titre" placeholder="Titre">
-<input type="text" id="artistes" placeholder="Artistes">
-<input type="text" id="pays" placeholder="Pays">
-<input type="text" id="labels" placeholder="Labels">
-
-<button onclick="envoyer()">Envoyer</button>
-
-</body>
-</html>
+<div id="interactive">
+  <div id="frame">
