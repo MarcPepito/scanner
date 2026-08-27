@@ -36,8 +36,7 @@
 <script type="module">
   import { BrowserMultiFormatReader } from "https://cdn.jsdelivr.net/npm/@zxing/library@latest/+esm";
 
-  const WEBAPP_URL ="https://script.google.com/macros/s/AKfycbxGhOoSIky3MCVhP_97iJOAvn4DFJSgTGuBkEZt3sdCVAVOZbTlZvZlJFLs28th0QbO/exec"
-;
+  const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxGhOoSIky3MCVhP_97iJOAvn4DFJSgTGuBkEZt3sdCVAVOZbTlZvZlJFLs28th0QbO/exec";
 
   let codeReader;
   let videoElement;
@@ -86,4 +85,52 @@
       let zoom = settings.zoom || capabilities.zoom.min;
 
       zoom += event.deltaY * -0.01;
-      zoom = Math.max(capabilities.zoom.min, Math.min(capabilities.zoom.max
+      zoom = Math.max(capabilities.zoom.min, Math.min(capabilities.zoom.max, zoom));
+
+      track.applyConstraints({ advanced: [{ zoom }] });
+    });
+  }
+
+  async function envoyer() {
+    const payload = {
+      codebarres: document.getElementById("codebarres").value,
+      titre: document.getElementById("titre").value,
+      artistes: document.getElementById("artistes").value,
+      pays: document.getElementById("pays").value,
+      labels: document.getElementById("labels").value
+    };
+
+    try {
+      await fetch(WEBAPP_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      alert("Enregistrement réussi !");
+    } catch (err) {
+      alert("Erreur : " + err);
+    }
+  }
+</script>
+
+</head>
+<body>
+
+<h2>Scanner iPhone – ZXing (EAN‑13 + UPC)</h2>
+
+<button onclick="startScanner()">📷 Ouvrir la caméra</button>
+
+<video id="video"></video>
+
+<input type="text" id="codebarres" placeholder="Code-barres détecté">
+
+<input type="text" id="titre" placeholder="Titre">
+<input type="text" id="artistes" placeholder="Artistes">
+<input type="text" id="pays" placeholder="Pays">
+<input type="text" id="labels" placeholder="Labels">
+
+<button onclick="envoyer()">Envoyer</button>
+
+</body>
+</html>
